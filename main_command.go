@@ -10,17 +10,12 @@ import (
 )
 
 var runCommand = cli.Command{
-	Name: "run",
-	Usage: `Create a container with namespace and cgroups limit
-			mydocker run -ti [command]`,
+	Name:  "run",
+	Usage: `Create a container with namespace and cgroups limit ie: mydocker run -ti [image] [command]`,
 	Flags: []cli.Flag{
 		cli.BoolFlag{
 			Name:  "ti",
 			Usage: "enable tty",
-		},
-		cli.StringFlag{
-			Name:  "v",
-			Usage: "volume",
 		},
 		cli.BoolFlag{
 			Name:  "d",
@@ -42,6 +37,10 @@ var runCommand = cli.Command{
 			Name:  "name",
 			Usage: "container name",
 		},
+		cli.StringFlag{
+			Name:  "v",
+			Usage: "volume",
+		},
 	},
 	Action: func(context *cli.Context) error {
 		if len(context.Args()) < 1 {
@@ -51,9 +50,13 @@ var runCommand = cli.Command{
 		for _, arg := range context.Args() {
 			cmdArray = append(cmdArray, arg)
 		}
+
+		//get image name
+		imageName := cmdArray[0]
+		cmdArray = cmdArray[1:]
+
 		createTty := context.Bool("ti")
 		detach := context.Bool("d")
-		volume := context.String("v")
 
 		if createTty && detach {
 			return fmt.Errorf("ti and d paramter can not both provided")
@@ -65,7 +68,8 @@ var runCommand = cli.Command{
 		}
 		log.Infof("createTty %v", createTty)
 		containerName := context.String("name")
-		Run(createTty, cmdArray, volume, resConf, containerName)
+		volume := context.String("v")
+		Run(createTty, cmdArray, resConf, containerName, volume, imageName)
 		return nil
 	},
 }
@@ -83,11 +87,12 @@ var commitCommand = cli.Command{
 	Name:  "commit",
 	Usage: "commit a container into image",
 	Action: func(context *cli.Context) error {
-		if len(context.Args()) < 1 {
-			return fmt.Errorf("Missing container name")
+		if len(context.Args()) < 2 {
+			return fmt.Errorf("Missing container name and image name")
 		}
-		imageName := context.Args().Get(0)
-		commitContainer(imageName)
+		containerName := context.Args().Get(0)
+		imageName := context.Args().Get(1)
+		commitContainer(containerName, imageName)
 		return nil
 	},
 }
@@ -144,6 +149,18 @@ var stopCommand = cli.Command{
 		}
 		containerName := context.Args().Get(0)
 		stopContainer(containerName)
+		return nil
+	},
+}
+var removeCommand = cli.Command{
+	Name:  "rm",
+	Usage: "remove unused containers",
+	Action: func(context *cli.Context) error {
+		if len(context.Args()) < 1 {
+			return fmt.Errorf("Missing container name")
+		}
+		containerName := context.Args().Get(0)
+		removeContainer(containerName)
 		return nil
 	},
 }

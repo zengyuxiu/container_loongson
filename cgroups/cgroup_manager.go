@@ -28,6 +28,7 @@ func (c *CgroupManager) Apply(pid int) error {
 
 // 设置cgroup资源限制
 func (c *CgroupManager) Set(res *subsystems.ResourceConfig) error {
+	logrus.Warnf("Set Cgs")
 	for _, subSysIns := range subsystems.SubsystemsIns {
 		subSysIns.Set(c.Path, res)
 	}
@@ -36,6 +37,7 @@ func (c *CgroupManager) Set(res *subsystems.ResourceConfig) error {
 
 //释放cgroup
 func (c *CgroupManager) Destroy() error {
+	logrus.Warnf("Destory Cgs")
 	for _, subSysIns := range subsystems.SubsystemsIns {
 		if err := subSysIns.Remove(c.Path); err != nil {
 			logrus.Warnf("remove cgroup fail %v", err)
