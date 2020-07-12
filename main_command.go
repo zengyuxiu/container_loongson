@@ -3,6 +3,7 @@ package main
 import (
 	"container_loongson/cgroups/subsystems"
 	"container_loongson/container"
+	"container_loongson/network"
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
@@ -11,7 +12,7 @@ import (
 
 var runCommand = cli.Command{
 	Name:  "run",
-	Usage: `Create a container with namespace and cgroups limit ie: mydocker run -ti [image] [command]`,
+	Usage: `Create a container with namespace and cgroups limit ie: run -ti [image] [command]`,
 	Flags: []cli.Flag{
 		cli.BoolFlag{
 			Name:  "ti",
@@ -69,7 +70,9 @@ var runCommand = cli.Command{
 		log.Infof("createTty %v", createTty)
 		containerName := context.String("name")
 		volume := context.String("v")
-		Run(createTty, cmdArray, resConf, containerName, volume, imageName)
+		network := context.String("net")
+		portmapping := context.StringSlice("p")
+		Run(createTty, cmdArray, resConf, containerName, volume, imageName, network, portmapping)
 		return nil
 	},
 }
@@ -162,5 +165,60 @@ var removeCommand = cli.Command{
 		containerName := context.Args().Get(0)
 		removeContainer(containerName)
 		return nil
+	},
+}
+var networkCommand = cli.Command{
+	Name:  "network",
+	Usage: "container network commands",
+	Subcommands: []cli.Command{
+		{
+			Name:  "create",
+			Usage: "create a container network",
+			Flags: []cli.Flag{
+				cli.StringFlag{
+					Name:  "driver",
+					Usage: "network driver",
+				},
+				cli.StringFlag{
+					Name:  "subnet",
+					Usage: "subnet cidr",
+				},
+			},
+			Action: func(context *cli.Context) error {
+				if len(context.Args()) < 1 {
+					return fmt.Errorf("Missing network name")
+				}
+				network.Init()
+				err := network.CreateNetwork(context.String("driver"), context.String("subnet"), context.Args()[0])
+				if err != nil {
+					return fmt.Errorf("create network error: %+v", err)
+				}
+				return nil
+			},
+		},
+		{
+			Name:  "list",
+			Usage: "list container network",
+			Action: func(context *cli.Context) error {
+				network.Init()
+				network.ListNetwork()
+				return nil
+			},
+		},
+		{
+			Name:  "remove",
+			Usage: "remove container network",
+			Action: func(context *cli.Context) error {
+				if len(context.Args()) < 1 {
+					return fmt.Errorf("Missing network name")
+				}
+				network.Init()
+				err := network.DeleteNetwork(context.Args()[0])
+				if err != nil {
+					return fmt.Errorf("remove network error: %+v", err)
+				}
+				return nil
+			},
+		},
 	},
 }

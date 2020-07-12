@@ -21,16 +21,17 @@ var (
 )
 
 type ContainerInfo struct {
-	Pid         string `json:"pid"`        //容器的init进程在宿主机上的 PID
-	Id          string `json:"id"`         //容器Id
-	Name        string `json:"name"`       //容器名
-	Command     string `json:"command"`    //容器内init运行命令
-	CreatedTime string `json:"createTime"` //创建时间
-	Status      string `json:"status"`     //容器的状态
-	Volume      string `json:"volume"`     //容器的数据卷
+	Pid         string   `json:"pid"`         //容器的init进程在宿主机上的 PID
+	Id          string   `json:"id"`          //容器Id
+	Name        string   `json:"name"`        //容器名
+	Command     string   `json:"command"`     //容器内init运行命令
+	CreatedTime string   `json:"createTime"`  //创建时间
+	Status      string   `json:"status"`      //容器的状态
+	Volume      string   `json:"volume"`      //容器的数据卷
+	PortMapping []string `json:"portmapping"` //端口映射
 }
 
-func NewParentProcess(tty bool, containerName, volume, imageName string) (*exec.Cmd, *os.File) {
+func StartContainer(tty bool, containerName, volume, imageName string) (*exec.Cmd, *os.File) {
 	readPipe, writePipe, err := NewPipe()
 	if err != nil {
 		log.Errorf("New pipe error %v", err)

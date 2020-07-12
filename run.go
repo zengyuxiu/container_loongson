@@ -4,6 +4,7 @@ import (
 	"container_loongson/cgroups"
 	"container_loongson/cgroups/subsystems"
 	"container_loongson/container"
+	"container_loongson/network"
 	"encoding/json"
 	"fmt"
 	log "github.com/sirupsen/logrus"
@@ -14,13 +15,13 @@ import (
 	"time"
 )
 
-func Run(tty bool, comArray []string, res *subsystems.ResourceConfig, containerName string, volume string, imageName string) {
+func Run(tty bool, comArray []string, res *subsystems.ResourceConfig, containerName string, volume string, imageName string, nw string, portmapping []string) {
 	containerID := randStringBytes(10)
 	if containerName == "" {
 		containerName = containerID
 	}
 
-	parent, writePipe := container.NewParentProcess(tty, containerName, volume, imageName)
+	parent, writePipe := container.StartContainer(tty, containerName, volume, imageName)
 	if parent == nil {
 		log.Errorf("New parent process error")
 		return
@@ -42,6 +43,20 @@ func Run(tty bool, comArray []string, res *subsystems.ResourceConfig, containerN
 	cgroupManager.Set(res)
 	cgroupManager.Apply(parent.Process.Pid)
 
+	if nw != "" {
+		// config container network
+		network.Init()
+		containerInfo := &container.ContainerInfo{
+			Id:          containerID,
+			Pid:         strconv.Itoa(parent.Process.Pid),
+			Name:        containerName,
+			PortMapping: portmapping,
+		}
+		if err := network.Connect(nw, containerInfo); err != nil {
+			log.Errorf("Error Connect Network %v", err)
+			return
+		}
+	}
 	sendInitCommand(comArray, writePipe)
 	if tty {
 		parent.Wait()
